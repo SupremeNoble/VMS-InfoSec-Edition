@@ -36,10 +36,7 @@ function login(username, password) {
             // Check if the user is an admin
             if (user.role === 'admin') {
               // Fetch all users if the user is an admin
-              return usersCollection.find().toArray()
-                .then((users) => {
-                  return { isAdmin: true, users };
-                });
+              return { isAdmin: true, user };
             }
             
             return { isAdmin: false, user }; // Successful login for a non-admin user
@@ -48,7 +45,7 @@ function login(username, password) {
           }
         }
   
-        // Check in the dbUsers array for testing purposes
+        // Check in the dbUsers array for testing purposes //Deprecated
         const testUser = dbUsers.find((dbUser) => dbUser.username === username && dbUser.password === password);
         if (testUser) {
           return { isAdmin: false, user: testUser };
@@ -233,8 +230,23 @@ app.post('/login', (req, res) => {
     login(username, password)
       .then((user) => {
         let token = generateToken(user);
-        console.log('User details:', user);
-        res.send(token);
+        //console.log('User details:', user);
+        //res.send(token);
+
+        // If user is an admin, fetch users
+        if (user.isAdmin) {
+          return usersCollection.find().toArray().then((users) => {
+            // Return both the token and users data
+            return { token, users };
+          });
+        }
+
+        // If not an admin, return only the token
+        return { token };
+      })
+      .then((result) => {
+        // Send the combined response
+        res.json(result);
       })
       .catch((error) => {
         res.status(401).send(error.message);
