@@ -201,13 +201,13 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
   
     login(username, password)
-      .then((user) => {
-        let token = generateToken(user);
+      .then((result) => {
+        let token = generateToken(result.user);
         //console.log('User details:', user);
         //res.send(token);
 
         // If user is an admin, fetch users
-        if (user.isAdmin) {
+        if (result.isAdmin) {
           return usersCollection.find().toArray().then((users) => {
             // Return both the token and users data
             return { token, users };
