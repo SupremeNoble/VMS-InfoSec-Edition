@@ -135,36 +135,9 @@ function register(username, password, name, email, building, apartment, phone) {
       });
 }
 
-//function generateToken(userData) {
-//    const token = jwt.sign(userData, 'ApartmentSuperPassword');
-//    return token;
-//}
-
 function generateToken(userData) {
-  const secretKey = 'ApartmentSuperPassword';
-
-  // Check if the user is an admin
-  if (userData.isAdmin) {
-    // If admin, create a token with only admin-related data
-    const adminTokenData = {
-      username: userData.user.username,
-      role: userData.user.role,
-      // Add other admin-related fields if needed
-    };
-
-    const adminToken = jwt.sign(adminTokenData, secretKey);
-    return adminToken;
-  } else {
-    // If not an admin, create a token with user-related data
-    const userTokenData = {
-      username: userData.user.username,
-      role: userData.user.role,
-      // Add other user-related fields if needed
-    };
-
-    const userToken = jwt.sign(userTokenData, secretKey);
-    return userToken;
-  }
+    const token = jwt.sign(userData, 'ApartmentSuperPassword');
+    return token;
 }
   
 function verifyToken(req, res, next) {
