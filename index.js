@@ -251,7 +251,9 @@ app.post('/visitorRegister', verifyToken, (req, res) => {
         return visitorsCollection.insertOne(visitorData);
       })
       .then(() => {
-        res.send(visitorData);
+        // Omit entryTime and checkoutTime from the response
+        const { _id, entryTime, checkoutTime, ...responseWithoutId } = visitorData;
+        res.send(responseWithoutId);
       })
       .catch((error) => {
         console.error('Error creating visitor:', error);
