@@ -59,4 +59,4 @@ jobs:
           app-name: 'ApartmentVMS-InfoSec'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_97B43BDC7200454891885AEECFE70A70 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_0E6BF504D35E4765B218579FD51BDA21 }}
