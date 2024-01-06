@@ -2,7 +2,7 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 3000;
-//const port = 3000;
+//const port = 6000;
 const jwt = require('jsonwebtoken');
 
 // MongoDB connection URL
@@ -159,11 +159,11 @@ app.get('/', (req,res) => {
 app.use(express.json());
 
 // User registration
-app.post('/userRegister', (req, res) => {
+app.post('/testRegister', (req, res) => {
 
-    const { username, password, name, email, role, building, apartment, phone } = req.body;
+    const { username, password, name, email, building, apartment, phone } = req.body;
   
-    register(username, password, name, email, role, building, apartment, phone)
+    register(username, password, name, email, building, apartment, phone)
       .then(() => {
         res.send('User registered successfully');
       })
@@ -173,9 +173,9 @@ app.post('/userRegister', (req, res) => {
 });
 
 // Admin registration
-app.post('/AdminRegister', verifyToken, (req, res) => {
-    // Check if the user has admin role
-    if (req.user.role !== 'admin') {
+app.post('/userRegister', verifyToken, (req, res) => {
+    // Check if the user has admin or security role
+    if (req.user.role !== 'admin' && req.user.role !== 'security') {
       return res.status(403).send('Access denied. Only admin can register users.');
     }
   
@@ -269,6 +269,7 @@ app.get('/visitors', verifyToken, (req, res) => {
     if (userRole === 'admin') {
       visitorsCollection
         .find()
+        .project({ _id: 0,entryTime: 0, checkoutTime: 0 })
         .toArray()
         .then((visitors) => {
           if (visitors.length === 0) {
@@ -319,6 +320,102 @@ app.get('/visitorAccess', (req, res) => {
         console.error('Error retrieving visitors by contact:', error);
         res.status(500).send('An error occurred while retrieving visitors by contact');
       });
+});
+
+// Check host info
+app.get('/accessCheck1', (req, res) => {
+  const accesspass = req.body.pass;
+
+  visitorsCollection
+    .find({ accesspass })
+    .project({ _id: 0,entryTime: 0, checkoutTime: 0 })
+    .toArray()
+    .then((visitors) => {
+      if (visitors.length === 0) {  
+        res.send('No hosts for that accesspass');
+      } else {
+        res.send(visitors);
+      }
+    })
+    .catch((error) => {
+      console.error('Error retrieving visitors by contact:', error);
+      res.status(500).send('An error occurred while retrieving visitors by contact');
+    });
+});
+
+app.get('/accessCheck', (req, res) => {
+  const accesspass = req.body.pass;
+
+  visitorsCollection
+    .aggregate([
+      {
+        $match: { accesspass }
+      },
+      {
+        $lookup: {
+          from: 'residents',
+          localField: 'whomtovisit',
+          foreignField: 'name',
+          as: 'hostInfo'
+        }
+      },
+      {
+        $unwind: '$hostInfo'
+      },
+      {
+        $project: {
+          _id: 0,
+          'hostInfo.name': 1,
+          'hostInfo.phone': 1
+        }
+      }
+    ])
+    .toArray()
+    .then((visitors) => {
+      if (visitors.length === 0) {  
+        res.send('No hosts for that accesspass');
+      } else {
+        res.send(visitors);
+      }
+    })
+    .catch((error) => {
+      console.error('Error retrieving visitors by accesspass:', error);
+      res.status(500).send('An error occurred while retrieving visitors by accesspass');
+    });
+});
+
+// Delete a user
+app.delete('/userDelete', verifyToken, (req, res) => {
+  const deletingUsername = req.body.username;
+
+  usersCollection
+    .findOne({ username: deletingUsername })
+    .then((deletingUser) => {
+      if (!deletingUser) {
+        return res.status(404).send('No user with that username exists');
+      } else if (req.user.role !== 'admin') {
+        return res.status(403).send('You do not have permission to delete this user');
+      } else {
+        const deletePromises = [usersCollection.deleteOne({ username: deletingUsername })];
+
+        if (deletingUser.role === 'resident') {
+          deletePromises.push(residentsCollection.deleteOne({ name: deletingUser.name }));
+        }
+
+        return Promise.all(deletePromises);
+      }
+    })
+    .then((results) => {
+      const deletedUserResult = results[0];
+
+      if (deletedUserResult && deletedUserResult.deletedCount > 0) {
+        res.send('User deleted successfully');
+      }
+    })
+    .catch((error) => {
+      console.error('Error deleting user:', error);
+      res.status(500).send('An error occurred while deleting the user');
+    });
 });
 
 // Start the server
